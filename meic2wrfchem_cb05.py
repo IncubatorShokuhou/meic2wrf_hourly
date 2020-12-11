@@ -129,11 +129,11 @@ def convert_unit(var,value,iemiss,emiss_year="2016",emiss_month="01"):
 
     # _,len_month = calendar.monthrange(emiss_year,emiss_month)  #获取排放源对应月份的天数
     if var in ['CO', 'CO2', 'NH3', 'NOx', 'SO2', ]:  #inorganic gas: ton/(grid.month) to mole/(km2.h)
-        emiss = value*10e6/(ll_area(lat, 0.25)*avg_hour_count *inorganic_gas_mole_weight[var])
+        emiss = value*1e6/(ll_area(lat, 0.25)*avg_hour_count *inorganic_gas_mole_weight[var])
     elif var in ['BC', 'OC', 'PM2.5', 'PMcoarse', ]:  # aerosol: ton/(grid.month) to ug/(m2.s)
-        emiss = value*10e6/(ll_area(lat, 0.25)*avg_hour_count*3600)
+        emiss = value*1e6/(ll_area(lat, 0.25)*avg_hour_count*3600)
     else:  # organic gas: million_mole/(grid.month) to mole/(km2.h)
-        emiss = value*10e6/(ll_area(lat, 0.25)*avg_hour_count)
+        emiss = value*1e6/(ll_area(lat, 0.25)*avg_hour_count)
     return emiss  #返回实际上是当月等效小时数
 
 def pickle_read(pickle_file):# 是否存在pickle文件，如果存在则读取
