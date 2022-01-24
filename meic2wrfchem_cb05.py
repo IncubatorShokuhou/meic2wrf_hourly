@@ -79,23 +79,53 @@ def ll_area(lat,res=0.25):
     return return_area
 
 # 插值程序,从meic网格插值到wrf网格
-def meic2wrf(lon_inp,lat_inp,lon,lat,emis,interp_method = 'bilinear'):  
-    '''
-    input:
-        lon_inp: wrf的经度网格(wrfinput["XLONG"])
-        lat_inp: wrf的纬度网格(wrfinput["XLAT"])
-        lon: meic的经度网格,np.2darray
-        lat: meic的纬度网格,np.2darray
-        emis: 转化了单位后的meic排放,np.2darray
-        interp_method: xesmf的插值方法
-    return:
-        wrf投影的排放源数据
-    '''
+# def meic2wrf(lon_inp,lat_inp,lon,lat,emis,interp_method = 'bilinear'):  
+#     '''
+#     input:
+#         lon_inp: wrf的经度网格(wrfinput["XLONG"])
+#         lat_inp: wrf的纬度网格(wrfinput["XLAT"])
+#         lon: meic的经度网格,np.2darray
+#         lat: meic的纬度网格,np.2darray
+#         emis: 转化了单位后的meic排放,np.2darray
+#         interp_method: xesmf的插值方法
+#     return:
+#         wrf投影的排放源数据
+#     '''
     
-    grid_out = {'lon': lon_inp,'lat': lat_inp}
-    grid_in = {'lon': lon,'lat': lat}    
-    regridder = xe.Regridder(grid_in, grid_out, interp_method,reuse_weights=True)
-    emis_inp = regridder(emis)
+#     grid_out = {'lon': lon_inp,'lat': lat_inp}
+#     grid_in = {'lon': lon,'lat': lat}    
+#     regridder = xe.Regridder(grid_in, grid_out, interp_method,reuse_weights=True)
+#     emis_inp = regridder(emis)
+#     return emis_inp
+def meic2wrf(lon_inp,lat_inp,lon,lat,emis,):#lon/lat_inp: model; lon/lat: meic; emis: meic emis
+    #coordinations of meic grids origin
+    ox=lat[0,0]
+    oy=lon[0,0]
+
+    def inp(ix, iy, dx, dy, cdx, cdy): #put small function under meic2wrf function, or variables in small functions are global.
+        #area_ratio
+        return emis[ix,iy]*cdx*cdy+emis[ix,iy+1]*cdx*dy+emis[ix+1,iy+1]*dx*dy+emis[ix+1,iy]*dx*cdy
+
+    def std_p(p,o): #standardize point p
+        p = (p-o)*4
+        dp = p - int(p)
+        cdp = 1 - dp
+        ip = int(p) #get index of the nearest big grid relates to the p point
+        return dp, cdp, ip
+
+    def inp_p(px, py):
+        dx, cdx, ix = std_p(px,ox)
+        dy, cdy, iy = std_p(py,oy)
+        return inp(ix, iy, dx, dy, cdx, cdy)
+
+    emis_inp=np.zeros(lon_inp.shape, dtype='float32')
+    y_cnt =0
+    for (row_lat, row_lon) in zip(lat_inp, lon_inp): #2D meic coordinates to 1D
+        x_cnt=0
+        for (pnt_lat, pnt_lon) in zip(row_lat, row_lon): #1D to point
+            emis_inp[y_cnt,x_cnt] = inp_p(pnt_lat, pnt_lon) #assign meic emission
+            x_cnt += 1
+        y_cnt +=1
     return emis_inp
 
 def avg_hour(iemiss,emiss_year,emiss_month):
@@ -162,7 +192,8 @@ def make_interp_meic_emission(emiss_year,emiss_month,md5value,lon_inp,lat_inp):
     flag,interp_meic_emission = pickle_read(pickle_dir+"/"+emiss_year+emiss_month+"_"+str(md5value)+".pickle")  #插值到wrf格点并进行过单位变换的meic变量
     if not flag:
         # 获取meic数据,并转化单位
-        for spec in ['SO2','NOx','NH3','CO2','CO','OC','BC','PM2.5','PMcoarse','ALD2','UNR','PAR','TOL','ETHA','TERP','NVOL','ETH','MEOH','OLE','IOLE','ISOP','VOC','XYL','ETOH','FORM','ALDX']:
+        # for spec in ['SO2','NOx','NH3','CO2','CO','OC','BC','PM2.5','PMcoarse','ALD2','UNR','PAR','TOL','ETHA','TERP','NVOL','ETH','MEOH','OLE','IOLE','ISOP','VOC','XYL','ETOH','FORM','ALDX']:
+        for spec in ['SO2','NOx','NH3','CO2','CO','OC','BC','PM25','PM10','CB05_ALD2','CB05_UNR','CB05_PAR','CB05_TOL','CB05_ETHA','CB05_TERP','CB05_NVOL','CB05_ETH','CB05_MEOH','CB05_OLE','CB05_IOLE','CB05_ISOP','VOC','CB05_XYL','CB05_ETOH','CB05_FORM','CB05_ALDX']:
             interp_meic_emission[spec]={}
             for iemiss in ["agriculture","industry","power","residential","transportation"]:
                 try:  #部分污染物仅存在于某些类型排放源
