@@ -1,6 +1,10 @@
 # meic2wrf_hourly
 Interpolating & distributing MEIC 0.25*0.25 emission inventory onto WRF-Chem grids, with many customizable distribution coefficients
 *** 
+
+## 请注意：此代码是很久前写的了，在此期间meic数据格式或文件名可进过改变，不能保证一定可以顺利运行。建议参考此项目的逻辑或参数，而非试图直接使用此代码
+
+
 本程序针对[清华大学MEIC源排放清单](http://meicmodel.org/)(0.25°*0.25°，2016)，实现了清单中`CB05`排放源向`WRF-Chem`模式`CBMZ-Mosaic`方案的插值和分配（包括日分配、周分配、高度层分配等）。  
 
 项目中使用到的一些库和安装方式见下表:   
